@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:gravity="center_vertical">
+
+    <!-- Icon danh mục (có thể dùng ImageView hoặc Material Icon) -->
+    <ImageView
+        android:id="@+id/iv_category_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_category_default"
+        android:contentDescription="Category Icon"
+        android:layout_marginEnd="8dp"/>
+
+    <TextView
+        android:id="@+id/tv_category_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Home"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary"/>
+
+    <TextView
+        android:id="@+id/tv_category_percentage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="69.76%"
+        android:textSize="14sp"
+        android:layout_marginEnd="8dp"
+        android:textColor="?android:attr/textColorSecondary"/>
+
+    <TextView
+        android:id="@+id/tv_category_amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="VND -3.000.000"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/red_expense"/> <!-- Sẽ thêm màu red_expense vào colors.xml -->
+
+</LinearLayout>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Định nghĩa các màu sắc cho chế độ tối (nếu cần thay đổi so với chế độ sáng) -->
+    <!-- Ví dụ, bạn có thể muốn các màu ít chói hơn hoặc khác biệt cho chế độ tối -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Màu sắc riêng cho ứng dụng trong chế độ tối -->
+    <!-- Giữ nguyên hoặc điều chỉnh nếu muốn màu khác cho chế độ tối -->
+    <color name="green_income">#66BB6A</color> <!-- Màu xanh lá nhạt hơn một chút cho thu nhập -->
+    <color name="red_expense">#EF5350</color> <!-- Màu đỏ nhạt hơn một chút cho chi tiêu -->
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <!-- Mục menu để chuyển đổi chế độ sáng/tối -->
+    <item
+        android:id="@+id/action_toggle_theme"
+        android:title="Chế độ sáng/tối"
+        app:showAsAction="never" />
+    <!-- Mục menu để thay đổi đơn vị tiền tệ -->
+    <item
+        android:id="@+id/action_change_currency"
+        android:title="Đơn vị tiền tệ"
+        app:showAsAction="never" />
+    <!-- Mục menu để đăng xuất -->
+    <item
+        android:id="@+id/action_sign_out"
+        android:title="Đăng xuất"
+        app:showAsAction="never" />
+</menu>
