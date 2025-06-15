@@ -18,7 +18,7 @@ import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 
-
+import vn.tlu.cse.ht2.nhom16.moneymanagementapp.BuildConfig; // Đảm bảo import BuildConfig từ package chính xác của bạn
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -170,14 +170,21 @@ public class AiInsightsFragment extends Fragment {
 
     private String callGeminiApi(String prompt) {
         String insight = null;
+        HttpURLConnection conn = null; // Khởi tạo null ở đây
         try {
-            // PLEASE REPLACE "YOUR_GEMINI_API_KEY_HERE" WITH YOUR ACTUAL GEMINI API KEY
-            // YOU CAN GET YOUR API KEY FROM Google AI Studio: https://aistudio.google.com/app/apikey
-            String apiKey = "AIzaSyBWPRpP7Ag3F8JiDTQgNqe3B1hQcVOTbuE";
+            String apiKey = BuildConfig.GEMINI_API_KEY;
+
+            if ("YOUR_PLACEHOLDER_API_KEY".equals(apiKey)) {
+                Log.e(TAG, "API Key is a placeholder. Please set your actual Gemini API key in local.properties.");
+                mainHandler.post(() -> Toast.makeText(getContext(), "Lỗi: Chưa cấu hình API Key Gemini. Vui lòng kiểm tra file local.properties.", Toast.LENGTH_LONG).show());
+                return null;
+            }
+
             String apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey;
 
             URL url = new URL(apiUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
+
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
@@ -207,10 +214,10 @@ public class AiInsightsFragment extends Fragment {
                     StringBuilder response = new StringBuilder();
                     String responseLine;
                     while ((responseLine = br.readLine()) != null) {
-                        response.append(responseLine); // Không trim ở đây để giữ nguyên định dạng nếu cần
+                        response.append(responseLine);
                     }
                     Log.d(TAG, "Received raw response: " + response.toString());
-                    insight = response.toString(); // Lưu chuỗi JSON thô
+                    insight = response.toString();
                 }
             } else {
                 Log.e(TAG, "HTTP error code: " + responseCode);
@@ -218,13 +225,17 @@ public class AiInsightsFragment extends Fragment {
                     StringBuilder errorResponse = new StringBuilder();
                     String errorLine;
                     while ((errorLine = br.readLine()) != null) {
-                        errorResponse.append(errorLine); // Không trim ở đây
+                        errorResponse.append(errorLine);
                     }
                     Log.e(TAG, "Error response from API: " + errorResponse.toString());
                 }
             }
         } catch (Exception e) {
             Log.e(TAG, "Error calling Gemini API: " + e.getMessage(), e);
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
         }
         return insight;
     }
@@ -234,9 +245,6 @@ public class AiInsightsFragment extends Fragment {
             // Log chuỗi phản hồi thô đầu tiên
             Log.d(TAG, "Raw JSON response received: " + rawJsonResponse);
 
-            // Cố gắng trích xuất khối JSON chính từ phản hồi của LLM
-            // Phản hồi từ LLM thường có cấu trúc { "candidates": [ { "content": { "parts": [ { "text": "..." } ] } } ] }
-            // Trong đó "text" chứa chuỗi JSON thực tế (có thể có markdown ```json)
             String llmResponseText = "";
             try {
                 JSONObject outerJson = new JSONObject(rawJsonResponse);
@@ -262,7 +270,7 @@ public class AiInsightsFragment extends Fragment {
             // Làm sạch chuỗi văn bản để chỉ lấy phần JSON thuần túy
             String finalJsonToParse = extractJsonFromString(llmResponseText);
 
-            Log.d(TAG, "Final JSON string to parse after cleaning: " + finalJsonToParse);
+            Log.d(TAG, "Final JSON string to parse after cleaning: '" + finalJsonToParse + "'");
 
             if (finalJsonToParse == null || finalJsonToParse.isEmpty()) {
                 throw new JSONException("No valid JSON found after extraction and cleaning.");
