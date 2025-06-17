@@ -12,10 +12,11 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.core.content.ContextCompat; // Import ContextCompat
+import androidx.core.content.ContextCompat;
 
-import vn.tlu.cse.ht2.nhom16.moneymanagementapp.activities.MainActivity; // Đảm bảo đúng package cho MainActivity
+import androidx.recyclerview.widget.RecyclerView;
+
+import vn.tlu.cse.ht2.nhom16.moneymanagementapp.activities.MainActivity;
 import vn.tlu.cse.ht2.nhom16.moneymanagementapp.R;
 import vn.tlu.cse.ht2.nhom16.moneymanagementapp.models.Expense;
 
@@ -29,23 +30,25 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
     private DecimalFormat decimalFormat;
     private String currentCurrency;
 
-    public ExpenseAdapter(List<Expense> expenseList, Context context, String initialCurrency) {
+
+    public ExpenseAdapter(List<Expense> expenseList, Context context, DecimalFormat decimalFormat, String currentCurrency) {
         this.expenseList = expenseList;
         this.context = context;
-        this.currentCurrency = initialCurrency;
-        // DecimalFormat ban đầu, sẽ được cập nhật từ MainActivity
-        this.decimalFormat = new DecimalFormat("#,##0.00");
+        // Gán DecimalFormat và currentCurrency từ MainActivity (đã cố định)
+        this.decimalFormat = decimalFormat;
+        this.currentCurrency = currentCurrency;
     }
 
-    // Setter để cập nhật định dạng tiền tệ từ MainActivity
-    public void setDecimalFormat(DecimalFormat newFormat) {
-        this.decimalFormat = newFormat;
-    }
 
-    // Setter để cập nhật đơn vị tiền tệ từ MainActivity
-    public void setCurrentCurrency(String newCurrency) {
-        this.currentCurrency = newCurrency;
-    }
+    // Không cần các setter này nữa vì tiền tệ đã cố định
+    // public void setDecimalFormat(DecimalFormat newFormat) {
+    //     this.decimalFormat = newFormat;
+    // }
+
+    // public void setCurrentCurrency(String newCurrency) {
+    //     this.currentCurrency = newCurrency;
+    // }
+
 
     @NonNull
     @Override
@@ -59,10 +62,8 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
         Expense expense = expenseList.get(position);
         holder.tvDescription.setText("Mô tả: " + expense.getDescription());
 
-        // Hiển thị số tiền với định dạng và đơn vị tiền tệ
         holder.tvAmount.setText(String.format("Số tiền: %s %s", decimalFormat.format(expense.getAmount()), currentCurrency));
 
-        // Đặt màu cho số tiền dựa trên loại (thu nhập/chi tiêu)
         if (expense.getType().equals("income")) {
             holder.tvAmount.setTextColor(ContextCompat.getColor(context, R.color.green_income));
         } else {

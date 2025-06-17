@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Chủ đề cơ bản cho ứng dụng ở chế độ sáng (mặc định) -->
-    <style name="Theme.MoneyManagementApp" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <!-- Chủ đề cố định ở chế độ sáng -->
+    <style name="Theme.MoneyManagementApp" parent="Theme.MaterialComponents.Light.DarkActionBar">
         <!-- Primary brand color. -->
         <item name="colorPrimary">@color/purple_500</item>
         <item name="colorPrimaryVariant">@color/purple_700</item>
@@ -14,9 +14,9 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
 
-        <!-- Đảm bảo màu nền là trắng trong chế độ sáng -->
+        <!-- Đảm bảo màu nền là trắng -->
         <item name="android:colorBackground">@color/white</item>
-        <!-- Đảm bảo màu chữ chính là đen trong chế độ sáng -->
+        <!-- Đảm bảo màu chữ chính là đen -->
         <item name="android:textColorPrimary">@color/black</item>
     </style>
 </resources>
