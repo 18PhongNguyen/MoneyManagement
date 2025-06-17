@@ -21,7 +21,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks; // Import Tasks
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -30,11 +30,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date; // Import Date class
+import java.util.Date;
 import java.util.List;
 
 import vn.tlu.cse.ht2.nhom16.moneymanagementapp.R;
@@ -56,29 +55,27 @@ public class MainActivity extends AppCompatActivity {
 
     private BottomNavigationView bottomNavigationView;
 
-    private List<Expense> expenseList; // Danh sách chung cho tất cả các Fragment
-    private List<Budget> budgetList; // Danh sách ngân sách
-    private SharedPreferences sharedPreferences;
-    private String currentCurrency = "VND";
+    private List<Expense> expenseList;
+    private List<Budget> budgetList;
+    private SharedPreferences sharedPreferences; // Vẫn cần cho PREF_KEY_DATA_INITIALIZED
+    private String currentCurrency = "VND"; // Cố định tiền tệ là VND
     private DecimalFormat decimalFormat;
 
-    // Các Fragment
     private HomeFragment homeFragment;
     private HistoryFragment historyFragment;
     private StatisticsFragment statisticsFragment;
     private AiInsightsFragment aiInsightsFragment;
-    private BudgetFragment budgetFragment; // Fragment mới
-    private Fragment activeFragment; // Fragment hiện tại đang hiển thị
+    private BudgetFragment budgetFragment;
+    private Fragment activeFragment;
 
     private static final String PREF_KEY_DATA_INITIALIZED = "data_initialized";
-    private AlertDialog currencyDialog; // Khai báo AlertDialog để có thể dismiss trong onDestroy
+    // private AlertDialog currencyDialog; // Không cần nữa vì không có dialog chuyển tiền tệ
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Cố định ứng dụng ở chế độ sáng (Light Mode)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
         super.onCreate(savedInstanceState);
-        int savedThemeMode = getSharedPreferences("app_prefs", MODE_PRIVATE).getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
-        AppCompatDelegate.setDefaultNightMode(savedThemeMode);
-
         setContentView(R.layout.activity_main);
 
         mAuth = FirebaseAuth.getInstance();
@@ -91,8 +88,8 @@ public class MainActivity extends AppCompatActivity {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        currentCurrency = sharedPreferences.getString("currency", "VND");
-        updateDecimalFormat();
+        // Không đọc currency từ SharedPreferences nữa, đã cố định là VND
+        updateDecimalFormat(); // Cập nhật DecimalFormat với currentCurrency cố định
 
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -101,17 +98,16 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         userId = currentUser.getUid();
-        Log.d(TAG, "onCreate: Current User ID: " + userId); // Log userId
+        Log.d(TAG, "onCreate: Current User ID: " + userId);
 
         expenseList = new ArrayList<>();
-        budgetList = new ArrayList<>(); // Khởi tạo danh sách ngân sách
+        budgetList = new ArrayList<>();
 
-        // Khởi tạo các Fragment
         homeFragment = new HomeFragment();
         historyFragment = new HistoryFragment();
         statisticsFragment = new StatisticsFragment();
         aiInsightsFragment = new AiInsightsFragment();
-        budgetFragment = new BudgetFragment(); // Khởi tạo fragment ngân sách
+        budgetFragment = new BudgetFragment();
 
         bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setOnItemSelectedListener(item -> {
@@ -139,9 +135,6 @@ public class MainActivity extends AppCompatActivity {
             bottomNavigationView.setSelectedItemId(R.id.nav_home);
         }
 
-        // --- Logic khởi tạo dữ liệu mẫu và listener ---
-        // Nếu đây là lần chạy đầu tiên hoặc dữ liệu ứng dụng đã bị xóa, hãy xóa dữ liệu cũ trước
-        // sau đó thêm dữ liệu mẫu và khởi động listener.
         if (!sharedPreferences.getBoolean(PREF_KEY_DATA_INITIALIZED, false)) {
             Log.d(TAG, "onCreate: First run detected or app data cleared. Deleting existing data before adding sample data.");
             deleteAllUserData(() -> {
@@ -159,7 +152,6 @@ public class MainActivity extends AppCompatActivity {
             listenForExpenses();
             listenForBudgets();
         }
-        // ------------------------------------------
     }
 
     private void loadFragment(Fragment fragment) {
@@ -179,7 +171,6 @@ public class MainActivity extends AppCompatActivity {
         activeFragment = fragment;
     }
 
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
@@ -189,13 +180,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_toggle_theme) {
-            toggleTheme();
-            return true;
-        } else if (id == R.id.action_change_currency) {
-            showCurrencyChangeDialog();
-            return true;
-        } else if (id == R.id.action_sign_out) {
+        // Đã loại bỏ logic chuyển theme và đổi tiền tệ ở đây
+        if (id == R.id.action_sign_out) {
             signOut();
             return true;
         }
@@ -220,17 +206,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateDecimalFormat() {
-        if (currentCurrency.equals("VND")) {
-            decimalFormat = new DecimalFormat("#,##0");
-        } else {
-            decimalFormat = new DecimalFormat("#,##0.00");
-        }
-        // Cập nhật adapter của các fragment nếu chúng đã được khởi tạo
-        // Việc gọi updateUI ở đây là quan trọng để làm mới dữ liệu khi định dạng tiền tệ thay đổi
-        if (homeFragment != null && homeFragment.isAdded()) homeFragment.updateUI();
-        if (historyFragment != null && historyFragment.isAdded()) historyFragment.updateUI();
-        if (statisticsFragment != null && statisticsFragment.isAdded()) statisticsFragment.updateUI();
-        if (budgetFragment != null && budgetFragment.isAdded()) budgetFragment.updateUI(); // Cập nhật budget fragment
+        // Cố định tiền tệ là VND, nên DecimalFormat cũng cố định
+        decimalFormat = new DecimalFormat("#,##0");
+        // Không cần gọi updateUI của các fragment ở đây nữa vì tiền tệ không đổi
     }
 
     public void addExpense(Expense expense) {
@@ -294,7 +272,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     Log.d(TAG, "listenForExpenses: Clearing expenseList (current size: " + expenseList.size() + ")");
-                    expenseList.clear(); // Luôn xóa dữ liệu cũ trước khi thêm mới
+                    expenseList.clear();
 
                     if (value != null) {
                         Log.d(TAG, "listenForExpenses: Received " + value.size() + " expense documents from Firestore.");
@@ -309,7 +287,6 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     Log.d(TAG, "listenForExpenses: expenseList updated (new size: " + expenseList.size() + "). Notifying fragments.");
-                    // Cập nhật UI của tất cả các fragment liên quan
                     if (homeFragment != null && homeFragment.isAdded()) homeFragment.updateUI();
                     if (historyFragment != null && historyFragment.isAdded()) historyFragment.updateUI();
                     if (statisticsFragment != null && statisticsFragment.isAdded()) statisticsFragment.updateUI();
@@ -317,7 +294,6 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    // --- Phương thức quản lý Ngân sách ---
     public void addBudget(Budget budget) {
         db.collection("users").document(userId).collection("budgets")
                 .add(budget)
@@ -338,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
 
         DocumentReference budgetRef = db.collection("users").document(userId)
                 .collection("budgets").document(budget.getId());
-        budgetRef.set(budget) // set() sẽ ghi đè toàn bộ tài liệu hiện có
+        budgetRef.set(budget)
                 .addOnSuccessListener(aVoid -> Toast.makeText(MainActivity.this, "Đã cập nhật ngân sách.", Toast.LENGTH_SHORT).show())
                 .addOnFailureListener(e -> {
                     Toast.makeText(MainActivity.this, "Lỗi khi cập nhật ngân sách: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -388,47 +364,7 @@ public class MainActivity extends AppCompatActivity {
     }
     //endregion
 
-    //region Theme and Currency Management
-    private void toggleTheme() {
-        Log.d(TAG, "toggleTheme: Attempting to toggle theme.");
-        // Đóng overflow menu trước khi recreate() để tránh WindowLeaked
-        closeOptionsMenu();
-        Log.d(TAG, "toggleTheme: Overflow menu closed.");
-
-        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        int newThemeMode;
-        if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
-            newThemeMode = AppCompatDelegate.MODE_NIGHT_NO;
-            Log.d(TAG, "toggleTheme: Current is NIGHT, setting to DAY.");
-        } else {
-            newThemeMode = AppCompatDelegate.MODE_NIGHT_YES;
-            Log.d(TAG, "toggleTheme: Current is DAY, setting to NIGHT.");
-        }
-        AppCompatDelegate.setDefaultNightMode(newThemeMode);
-        sharedPreferences.edit().putInt("theme_mode", newThemeMode).apply();
-        // Cần gọi recreate() để áp dụng theme mới ngay lập tức
-        recreate();
-        Log.d(TAG, "toggleTheme: Calling recreate() to apply new theme.");
-    }
-
-    private void showCurrencyChangeDialog() {
-        final String[] currencies = {"VND", "USD", "EUR"};
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Chọn đơn vị tiền tệ")
-                .setItems(currencies, (dialog, which) -> {
-                    String selectedCurrency = currencies[which];
-                    if (!currentCurrency.equals(selectedCurrency)) {
-                        currentCurrency = selectedCurrency;
-                        sharedPreferences.edit().putString("currency", currentCurrency).apply();
-                        updateDecimalFormat();
-                        Toast.makeText(MainActivity.this, "Đơn vị tiền tệ đã thay đổi thành " + currentCurrency, Toast.LENGTH_SHORT).show();
-                    }
-                });
-        currencyDialog = builder.create(); // Lưu tham chiếu đến dialog
-        currencyDialog.show();
-    }
-    //endregion
-
+    //region Sign Out
     private void signOut() {
         mAuth.signOut();
         mGoogleSignInClient.signOut().addOnCompleteListener(this, task -> {
@@ -437,30 +373,23 @@ public class MainActivity extends AppCompatActivity {
             finish();
         });
     }
+    //endregion
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Đảm bảo dismiss dialog để tránh Window Leaked
-        if (currencyDialog != null && currencyDialog.isShowing()) {
-            currencyDialog.dismiss();
-            Log.d(TAG, "onDestroy: currencyDialog dismissed.");
-        }
+        // Không cần dismiss currencyDialog nữa vì đã loại bỏ chức năng đổi tiền tệ
+        // if (currencyDialog != null && currencyDialog.isShowing()) {
+        //     currencyDialog.dismiss();
+        //     Log.d(TAG, "onDestroy: currencyDialog dismissed.");
+        // }
         Log.d(TAG, "onDestroy: MainActivity destroyed.");
     }
 
-    /**
-     * Xóa tất cả dữ liệu chi tiêu và ngân sách của người dùng hiện tại từ Firestore.
-     * Phương thức này được gọi khi ứng dụng chạy lần đầu hoặc dữ liệu đã bị xóa,
-     * để đảm bảo một bộ dữ liệu mẫu sạch.
-     *
-     * @param onCompleteCallback Callback sẽ được gọi khi tất cả các thao tác xóa hoàn tất.
-     */
     private void deleteAllUserData(final Runnable onCompleteCallback) {
         Log.d(TAG, "deleteAllUserData: Đang xóa tất cả chi tiêu và ngân sách cho người dùng: " + userId);
         List<Task<Void>> deleteTasks = new ArrayList<>();
 
-        // Lấy và thêm các tác vụ xóa cho tất cả các khoản chi tiêu
         db.collection("users").document(userId).collection("expenses")
                 .get()
                 .addOnCompleteListener(task -> {
@@ -473,7 +402,6 @@ public class MainActivity extends AppCompatActivity {
                         Log.e(TAG, "deleteAllUserData: Lỗi khi lấy chi tiêu để xóa.", task.getException());
                     }
 
-                    // Lấy và thêm các tác vụ xóa cho tất cả các ngân sách
                     db.collection("users").document(userId).collection("budgets")
                             .get()
                             .addOnCompleteListener(budgetTask -> {
@@ -486,7 +414,6 @@ public class MainActivity extends AppCompatActivity {
                                     Log.e(TAG, "deleteAllUserData: Lỗi khi lấy ngân sách để xóa.", budgetTask.getException());
                                 }
 
-                                // Đợi cho tất cả các tác vụ xóa hoàn tất
                                 if (!deleteTasks.isEmpty()) {
                                     Tasks.whenAllComplete(deleteTasks)
                                             .addOnCompleteListener(allTasks -> {

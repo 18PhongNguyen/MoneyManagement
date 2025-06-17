@@ -1,1 +1,10 @@
 /build
+google-services.json
+/.gradle.kts
+/.idea
+proguard-rules.pro
+.properties
+gradlew
+gradlew.bat
+.gradle
+gradle
