@@ -68,8 +68,6 @@ public class MainActivity extends AppCompatActivity {
     private BudgetFragment budgetFragment;
     private Fragment activeFragment;
 
-    // Đã loại bỏ PREF_KEY_DATA_INITIALIZED vì không còn sử dụng logic thêm dữ liệu ban đầu
-    // private static final String PREF_KEY_DATA_INITIALIZED = "data_initialized";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,9 +132,7 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             bottomNavigationView.setSelectedItemId(R.id.nav_home);
         }
-
-        // Dữ liệu sẽ được quản lý trực tiếp trên Firebase Console.
-        // Chỉ cần khởi động listeners để đọc dữ liệu hiện có.
+      
         Log.d(TAG, "onCreate: Starting Firestore listeners to fetch existing data.");
         listenForExpenses();
         listenForBudgets();
