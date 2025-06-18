@@ -68,8 +68,6 @@ public class MainActivity extends AppCompatActivity {
     private BudgetFragment budgetFragment;
     private Fragment activeFragment;
 
-    private static final String PREF_KEY_DATA_INITIALIZED = "data_initialized";
-    // private AlertDialog currencyDialog; // Không cần nữa vì không có dialog chuyển tiền tệ
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,24 +132,10 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             bottomNavigationView.setSelectedItemId(R.id.nav_home);
         }
-
-        if (!sharedPreferences.getBoolean(PREF_KEY_DATA_INITIALIZED, false)) {
-            Log.d(TAG, "onCreate: First run detected or app data cleared. Deleting existing data before adding sample data.");
-            deleteAllUserData(() -> {
-                Log.d(TAG, "onCreate: Existing user data deleted. Initializing sample data and then starting listeners.");
-                addNewSampleDataContent(() -> {
-                    Log.d(TAG, "onCreate: Sample data initialization complete. Starting listeners now.");
-                    listenForExpenses();
-                    listenForBudgets();
-                    sharedPreferences.edit().putBoolean(PREF_KEY_DATA_INITIALIZED, true).apply();
-                    Toast.makeText(MainActivity.this, "Dữ liệu mẫu đã được thêm và listeners đã khởi tạo!", Toast.LENGTH_LONG).show();
-                });
-            });
-        } else {
-            Log.d(TAG, "onCreate: Data already initialized. Starting listeners.");
-            listenForExpenses();
-            listenForBudgets();
-        }
+      
+        Log.d(TAG, "onCreate: Starting Firestore listeners to fetch existing data.");
+        listenForExpenses();
+        listenForBudgets();
     }
 
     private void loadFragment(Fragment fragment) {
@@ -180,7 +164,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        // Đã loại bỏ logic chuyển theme và đổi tiền tệ ở đây
         if (id == R.id.action_sign_out) {
             signOut();
             return true;
@@ -378,93 +361,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Không cần dismiss currencyDialog nữa vì đã loại bỏ chức năng đổi tiền tệ
-        // if (currencyDialog != null && currencyDialog.isShowing()) {
-        //     currencyDialog.dismiss();
-        //     Log.d(TAG, "onDestroy: currencyDialog dismissed.");
-        // }
         Log.d(TAG, "onDestroy: MainActivity destroyed.");
-    }
-
-    private void deleteAllUserData(final Runnable onCompleteCallback) {
-        Log.d(TAG, "deleteAllUserData: Đang xóa tất cả chi tiêu và ngân sách cho người dùng: " + userId);
-        List<Task<Void>> deleteTasks = new ArrayList<>();
-
-        db.collection("users").document(userId).collection("expenses")
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            deleteTasks.add(document.getReference().delete());
-                        }
-                        Log.d(TAG, "deleteAllUserData: Đã thêm " + task.getResult().size() + " tác vụ xóa chi tiêu.");
-                    } else {
-                        Log.e(TAG, "deleteAllUserData: Lỗi khi lấy chi tiêu để xóa.", task.getException());
-                    }
-
-                    db.collection("users").document(userId).collection("budgets")
-                            .get()
-                            .addOnCompleteListener(budgetTask -> {
-                                if (budgetTask.isSuccessful()) {
-                                    for (QueryDocumentSnapshot document : budgetTask.getResult()) {
-                                        deleteTasks.add(document.getReference().delete());
-                                    }
-                                    Log.d(TAG, "deleteAllUserData: Đã thêm " + budgetTask.getResult().size() + " tác vụ xóa ngân sách.");
-                                } else {
-                                    Log.e(TAG, "deleteAllUserData: Lỗi khi lấy ngân sách để xóa.", budgetTask.getException());
-                                }
-
-                                if (!deleteTasks.isEmpty()) {
-                                    Tasks.whenAllComplete(deleteTasks)
-                                            .addOnCompleteListener(allTasks -> {
-                                                Log.d(TAG, "deleteAllUserData: Tất cả tác vụ xóa đã hoàn thành.");
-                                                if (onCompleteCallback != null) {
-                                                    onCompleteCallback.run();
-                                                }
-                                            });
-                                } else {
-                                    Log.d(TAG, "deleteAllUserData: Không có dữ liệu để xóa.");
-                                    if (onCompleteCallback != null) {
-                                        onCompleteCallback.run();
-                                    }
-                                }
-                            });
-                });
-    }
-
-    private void addNewSampleDataContent(final Runnable onAllAddedCallback) {
-        Log.d(TAG, "addNewSampleDataContent: Bắt đầu thêm nội dung dữ liệu mẫu.");
-
-        List<Task<DocumentReference>> addTasks = new ArrayList<>();
-
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Lương tháng 6", 15000000, "income", "Lương")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Tiền thưởng", 2000000, "income", "Thưởng")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Tiền ăn uống", 3000000, "expense", "Ăn uống")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Tiền thuê nhà", 4000000, "expense", "Nhà ở")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Điện nước", 800000, "expense", "Hóa đơn")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Mua sắm quần áo", 1200000, "expense", "Mua sắm")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Phí di chuyển", 500000, "expense", "Đi lại")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Giải trí cuối tuần", 700000, "expense", "Giải trí")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Mua sách", 300000, "expense", "Giáo dục")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Quà sinh nhật", 450000, "expense", "Quà tặng")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Internet", 200000, "expense", "Hóa đơn")));
-        addTasks.add(db.collection("users").document(userId).collection("expenses").add(new Expense("Gửi xe", 100000, "expense", "Đi lại")));
-
-        Calendar cal = Calendar.getInstance();
-        long currentMonthYear = cal.get(Calendar.YEAR) * 100L + (cal.get(Calendar.MONTH) + 1);
-
-        addTasks.add(db.collection("users").document(userId).collection("budgets").add(new Budget("Ăn uống", 4000000, currentMonthYear)));
-        addTasks.add(db.collection("users").document(userId).collection("budgets").add(new Budget("Nhà ở", 4500000, currentMonthYear)));
-        addTasks.add(db.collection("users").document(userId).collection("budgets").add(new Budget("Đi lại", 700000, currentMonthYear)));
-        addTasks.add(db.collection("users").document(userId).collection("budgets").add(new Budget("Mua sắm", 1500000, currentMonthYear)));
-        addTasks.add(db.collection("users").document(userId).collection("budgets").add(new Budget("Giải trí", 1000000, currentMonthYear)));
-
-        Tasks.whenAllComplete(addTasks)
-                .addOnCompleteListener(task -> {
-                    Log.d(TAG, "addNewSampleDataContent: Tất cả dữ liệu mẫu đã được thêm (hoặc cố gắng thêm).");
-                    if (onAllAddedCallback != null) {
-                        onAllAddedCallback.run();
-                    }
-                });
     }
 }
