@@ -1,3 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">MoneyManagementApp</string>
+    <string name="app_name">Money Management App</string>
+    <string name="default_web_client_id" translatable="false">YOUR_WEB_CLIENT_ID_HERE</string> <!-- Replace with your actual client ID -->
+
+    <!-- Mảng danh mục chi tiêu -->
+    <string-array name="expense_categories">
+        <item>Ăn uống</item>
+        <item>Nhà ở</item>
+        <item>Đi lại</item>
+        <item>Mua sắm</item>
+        <item>Giải trí</item>
+        <item>Hóa đơn</item>
+        <item>Giáo dục</item>
+        <item>Sức khỏe</item>
+        <item>Quà tặng</item>
+        <item>Khác</item>
+    </string-array>
+
+    <!-- Mảng danh mục thu nhập -->
+    <string-array name="income_categories">
+        <item>Lương</item>
+        <item>Thưởng</item>
+        <item>Đầu tư</item>
+        <item>Quà tặng</item>
+        <item>Khác</item>
+    </string-array>
+
 </resources>

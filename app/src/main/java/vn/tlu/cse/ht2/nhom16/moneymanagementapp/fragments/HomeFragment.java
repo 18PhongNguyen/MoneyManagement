@@ -2,16 +2,19 @@ package vn.tlu.cse.ht2.nhom16.moneymanagementapp.fragments;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log; // Import Log for debugging
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.RadioButton; // Import RadioButton
-import android.widget.RadioGroup; // Import RadioGroup
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.Spinner; // Import Spinner
 import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.Toast; // Vẫn dùng Toast cho các thông báo ngắn gọn
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -20,7 +23,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import vn.tlu.cse.ht2.nhom16.moneymanagementapp.activities.MainActivity; // Để gọi hàm từ MainActivity
+import com.google.android.material.snackbar.Snackbar;
+import vn.tlu.cse.ht2.nhom16.moneymanagementapp.activities.MainActivity;
 import vn.tlu.cse.ht2.nhom16.moneymanagementapp.R;
 import vn.tlu.cse.ht2.nhom16.moneymanagementapp.adapters.CategorySummaryAdapter;
 import vn.tlu.cse.ht2.nhom16.moneymanagementapp.models.CategorySummary;
@@ -36,10 +40,11 @@ import java.util.Map;
 
 public class HomeFragment extends Fragment {
 
-    private static final String TAG = "HomeFragment"; // Tag cho Logcat
-    private EditText etDescription, etAmount, etCategory;
-    private RadioGroup rgType; // Thay thế EditText etType bằng RadioGroup
-    private RadioButton rbIncome, rbExpense; // Thêm RadioButton cho income và expense
+    private static final String TAG = "HomeFragment";
+    private EditText etDescription, etAmount, etCustomCategory; // etCategory đã được thay bằng spinner
+    private RadioGroup rgType;
+    private RadioButton rbIncome, rbExpense;
+    private Spinner spinnerCategory; // Spinner cho danh mục
     private Button btnAddExpense;
     private TextView tvAccountBalance, tvIncomeTotal, tvExpenseTotal;
     private RecyclerView rvTopExpenses;
@@ -47,7 +52,11 @@ public class HomeFragment extends Fragment {
     private List<CategorySummary> topExpensesList;
     private FloatingActionButton fabAddTransaction;
 
-    private MainActivity activity; // Tham chiếu đến MainActivity để tương tác
+    private MainActivity activity;
+    private ArrayAdapter<String> categoryAdapter;
+    private List<String> expenseCategories;
+    private List<String> incomeCategories;
+
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -68,10 +77,11 @@ public class HomeFragment extends Fragment {
         // Ánh xạ các View
         etDescription = view.findViewById(R.id.et_description);
         etAmount = view.findViewById(R.id.et_amount);
-        etCategory = view.findViewById(R.id.et_category);
-        rgType = view.findViewById(R.id.rg_type); // Ánh xạ RadioGroup
-        rbIncome = view.findViewById(R.id.rb_income); // Ánh xạ RadioButton Income
-        rbExpense = view.findViewById(R.id.rb_expense); // Ánh xạ RadioButton Expense
+        rgType = view.findViewById(R.id.rg_type);
+        rbIncome = view.findViewById(R.id.rb_income);
+        rbExpense = view.findViewById(R.id.rb_expense);
+        spinnerCategory = view.findViewById(R.id.spinner_category); // Ánh xạ Spinner
+        etCustomCategory = view.findViewById(R.id.et_custom_category); // Ánh xạ EditText cho danh mục tùy chỉnh
         btnAddExpense = view.findViewById(R.id.btn_add_expense);
         tvAccountBalance = view.findViewById(R.id.tv_account_balance);
         tvIncomeTotal = view.findViewById(R.id.tv_income_total);
@@ -84,43 +94,108 @@ public class HomeFragment extends Fragment {
         rvTopExpenses.setLayoutManager(new LinearLayoutManager(getContext()));
         rvTopExpenses.setAdapter(categorySummaryAdapter);
 
+        // Khởi tạo danh sách danh mục từ strings.xml
+        expenseCategories = new ArrayList<>(List.of(getResources().getStringArray(R.array.expense_categories)));
+        incomeCategories = new ArrayList<>(List.of(getResources().getStringArray(R.array.income_categories)));
+        // Thêm tùy chọn "Thêm danh mục mới"
+        expenseCategories.add("Thêm danh mục mới...");
+        incomeCategories.add("Thêm danh mục mới...");
+
+        // Thiết lập Adapter cho Spinner dựa trên lựa chọn loại giao dịch ban đầu
+        updateCategorySpinner(rbIncome.isChecked() ? incomeCategories : expenseCategories);
+
+
+        // Lắng nghe thay đổi của RadioGroup
+        rgType.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.rb_income) {
+                updateCategorySpinner(incomeCategories);
+            } else {
+                updateCategorySpinner(expenseCategories);
+            }
+        });
+
+        // Lắng nghe sự kiện chọn danh mục từ Spinner
+        spinnerCategory.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selectedCategory = (String) parent.getItemAtPosition(position);
+                if (selectedCategory.equals("Thêm danh mục mới...")) {
+                    etCustomCategory.setVisibility(View.VISIBLE);
+                    etCustomCategory.requestFocus();
+                } else {
+                    etCustomCategory.setVisibility(View.GONE);
+                    etCustomCategory.setText(""); // Clear custom field if not 'Add new'
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing
+            }
+        });
+
+
         // Lắng nghe sự kiện thêm khoản chi/thu
         btnAddExpense.setOnClickListener(v -> addOrUpdateExpense());
         fabAddTransaction.setOnClickListener(v -> {
-            // Có thể hiển thị một dialog hoặc mở một activity mới để thêm giao dịch
-            // Hoặc đơn giản là cuộn lên phần nhập liệu và reset các trường
-            etDescription.requestFocus();
             clearInputFields();
-            Toast.makeText(activity, "Nhập thông tin giao dịch mới", Toast.LENGTH_SHORT).show();
+            Snackbar.make(view, "Nhập thông tin giao dịch mới", Snackbar.LENGTH_SHORT).show();
         });
 
         return view;
+    }
+
+    private void updateCategorySpinner(List<String> categories) {
+        categoryAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, categories);
+        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCategory.setAdapter(categoryAdapter);
+        // Đặt mặc định chọn mục đầu tiên (hoặc "Khác")
+        spinnerCategory.setSelection(categories.indexOf("Khác") != -1 ? categories.indexOf("Khác") : 0);
+        etCustomCategory.setVisibility(View.GONE); // Ẩn trường tùy chỉnh khi chuyển loại
+        etCustomCategory.setText("");
     }
 
     // Phương thức để thêm hoặc cập nhật một khoản chi/thu
     private void addOrUpdateExpense() {
         String description = etDescription.getText().toString().trim();
         String amountStr = etAmount.getText().toString().trim();
-        String category = etCategory.getText().toString().trim();
 
         // Lấy loại giao dịch từ RadioGroup
         int selectedTypeId = rgType.getCheckedRadioButtonId();
         String type;
-        if (selectedTypeId == -1) {
-            Toast.makeText(activity, "Vui lòng chọn loại giao dịch (Thu/Chi)", Toast.LENGTH_SHORT).show();
-            return;
-        } else if (selectedTypeId == R.id.rb_income) {
+        if (selectedTypeId == R.id.rb_income) {
             type = "income";
-        } else { // R.id.rb_expense
+        } else if (selectedTypeId == R.id.rb_expense) {
             type = "expense";
+        } else {
+            Snackbar.make(requireView(), "Vui lòng chọn loại giao dịch (Thu/Chi)", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Lấy danh mục từ Spinner hoặc EditText tùy chỉnh
+        String category;
+        if (etCustomCategory.getVisibility() == View.VISIBLE && !etCustomCategory.getText().toString().trim().isEmpty()) {
+            category = etCustomCategory.getText().toString().trim();
+        } else if (spinnerCategory.getSelectedItem() != null && !spinnerCategory.getSelectedItem().toString().equals("Thêm danh mục mới...")) {
+            category = spinnerCategory.getSelectedItem().toString();
+        } else {
+            Snackbar.make(requireView(), "Vui lòng chọn hoặc nhập danh mục", Snackbar.LENGTH_SHORT).show();
+            return;
         }
 
         if (description.isEmpty() || amountStr.isEmpty() || category.isEmpty()) {
-            Toast.makeText(activity, "Vui lòng điền đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+            Snackbar.make(requireView(), "Vui lòng điền đầy đủ thông tin", Snackbar.LENGTH_SHORT).show();
             return;
         }
 
-        double amount = Double.parseDouble(amountStr);
+        double amount;
+        try {
+            amount = Double.parseDouble(amountStr);
+        } catch (NumberFormatException e) {
+            Snackbar.make(requireView(), "Số tiền không hợp lệ.", Snackbar.LENGTH_SHORT).show();
+            return;
+        }
+
 
         Expense newExpense = new Expense(description, amount, type.toLowerCase(), category);
         activity.addExpense(newExpense); // Gọi hàm thêm trong MainActivity
@@ -132,8 +207,10 @@ public class HomeFragment extends Fragment {
     private void clearInputFields() {
         etDescription.setText("");
         etAmount.setText("");
-        etCategory.setText("");
-        rgType.clearCheck(); // Xóa lựa chọn của RadioGroup
+        rgType.check(R.id.rb_income); // Đặt mặc định là Thu nhập
+        spinnerCategory.setSelection(0); // Đặt lại Spinner về mục đầu tiên
+        etCustomCategory.setText("");
+        etCustomCategory.setVisibility(View.GONE);
     }
 
     // Cập nhật giao diện người dùng dựa trên dữ liệu mới
