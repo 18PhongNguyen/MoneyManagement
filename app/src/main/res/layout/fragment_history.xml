@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="8dp"
-    tools:context="vn.tlu.cse.ht2.nhom16.moneymanagementapp.fragments.HistoryFragment">
+    tools:context=".fragments.HistoryFragment">
 
     <TextView
         android:id="@+id/tv_history_title"
@@ -21,6 +21,31 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/pb_loading_history"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tv_history_title"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <TextView
+        android:id="@+id/tv_empty_history_state"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bạn chưa có giao dịch nào. Hãy thêm giao dịch đầu tiên của bạn!"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:textColor="@color/gray_text"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tv_history_title"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_expenses_history"

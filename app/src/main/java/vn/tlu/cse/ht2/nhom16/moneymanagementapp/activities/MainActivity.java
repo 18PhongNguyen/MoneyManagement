@@ -7,7 +7,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.view.View; // Import View for Snackbar
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -20,9 +20,8 @@ import androidx.fragment.app.FragmentTransaction;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.snackbar.Snackbar; // Import Snackbar
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
@@ -57,8 +56,8 @@ public class MainActivity extends AppCompatActivity {
 
     private List<Expense> expenseList;
     private List<Budget> budgetList;
-    private SharedPreferences sharedPreferences; // Vẫn cần cho PREF_KEY_DATA_INITIALIZED
-    private String currentCurrency = "VND"; // Cố định tiền tệ là VND
+    private SharedPreferences sharedPreferences;
+    private String currentCurrency = "VND";
     private DecimalFormat decimalFormat;
 
     private HomeFragment homeFragment;
@@ -67,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
     private AiInsightsFragment aiInsightsFragment;
     private BudgetFragment budgetFragment;
     private Fragment activeFragment;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,8 +84,7 @@ public class MainActivity extends AppCompatActivity {
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
         sharedPreferences = getSharedPreferences("app_prefs", MODE_PRIVATE);
-        // Không đọc currency từ SharedPreferences nữa, đã cố định là VND
-        updateDecimalFormat(); // Cập nhật DecimalFormat với currentCurrency cố định
+        updateDecimalFormat();
 
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -132,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             bottomNavigationView.setSelectedItemId(R.id.nav_home);
         }
-      
+
         Log.d(TAG, "onCreate: Starting Firestore listeners to fetch existing data.");
         listenForExpenses();
         listenForBudgets();
@@ -141,6 +138,14 @@ public class MainActivity extends AppCompatActivity {
     private void loadFragment(Fragment fragment) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+        // Thêm hoạt ảnh chuyển đổi Fragment
+        fragmentTransaction.setCustomAnimations(
+                R.anim.slide_in_right,  // enter
+                R.anim.slide_out_left,  // exit
+                R.anim.slide_in_left,   // popEnter
+                R.anim.slide_out_right  // popExit
+        );
 
         if (activeFragment != null && activeFragment != fragment) {
             fragmentTransaction.hide(activeFragment);
@@ -189,9 +194,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateDecimalFormat() {
-        // Cố định tiền tệ là VND, nên DecimalFormat cũng cố định
         decimalFormat = new DecimalFormat("#,##0");
-        // Không cần gọi updateUI của các fragment ở đây nữa vì tiền tệ không đổi
     }
 
     public void addExpense(Expense expense) {
@@ -204,17 +207,17 @@ public class MainActivity extends AppCompatActivity {
                 .add(expense)
                 .addOnSuccessListener(documentReference -> {
                     Log.d(TAG, "addExpense: Successfully added expense: " + expense.getDescription() + " with ID: " + documentReference.getId());
-                    Toast.makeText(MainActivity.this, "Đã thêm khoản chi/thu", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Đã thêm khoản chi/thu", Snackbar.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "addExpense: Error adding expense: " + expense.getDescription(), e);
-                    Toast.makeText(MainActivity.this, "Lỗi khi thêm: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Lỗi khi thêm: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                 });
     }
 
     public void updateExpense(Expense expense) {
         if (expense.getId() == null) {
-            Toast.makeText(this, "Không tìm thấy ID khoản mục để cập nhật.", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Không tìm thấy ID khoản mục để cập nhật.", Snackbar.LENGTH_SHORT).show();
             return;
         }
 
@@ -223,11 +226,11 @@ public class MainActivity extends AppCompatActivity {
         expenseRef.set(expense)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "updateExpense: Successfully updated expense: " + expense.getDescription() + " with ID: " + expense.getId());
-                    Toast.makeText(MainActivity.this, "Đã cập nhật khoản chi/thu", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Đã cập nhật khoản chi/thu", Snackbar.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "updateExpense: Error updating expense: " + expense.getDescription(), e);
-                    Toast.makeText(MainActivity.this, "Lỗi khi cập nhật: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Lỗi khi cập nhật: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                 });
     }
 
@@ -236,11 +239,11 @@ public class MainActivity extends AppCompatActivity {
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "deleteExpense: Successfully deleted expense with ID: " + expenseId);
-                    Toast.makeText(MainActivity.this, "Đã xóa khoản chi/thu", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Đã xóa khoản chi/thu", Snackbar.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "deleteExpense: Error deleting expense with ID: " + expenseId, e);
-                    Toast.makeText(MainActivity.this, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Lỗi khi xóa: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                 });
     }
 
@@ -281,26 +284,26 @@ public class MainActivity extends AppCompatActivity {
         db.collection("users").document(userId).collection("budgets")
                 .add(budget)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(MainActivity.this, "Đã thêm ngân sách.", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Đã thêm ngân sách.", Snackbar.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this, "Lỗi khi thêm ngân sách: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Lỗi khi thêm ngân sách: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                     Log.e(TAG, "Error adding budget document", e);
                 });
     }
 
     public void updateBudget(Budget budget) {
         if (budget.getId() == null) {
-            Toast.makeText(this, "Không tìm thấy ID ngân sách để cập nhật.", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Không tìm thấy ID ngân sách để cập nhật.", Snackbar.LENGTH_SHORT).show();
             return;
         }
 
         DocumentReference budgetRef = db.collection("users").document(userId)
                 .collection("budgets").document(budget.getId());
         budgetRef.set(budget)
-                .addOnSuccessListener(aVoid -> Toast.makeText(MainActivity.this, "Đã cập nhật ngân sách.", Toast.LENGTH_SHORT).show())
+                .addOnSuccessListener(aVoid -> Snackbar.make(findViewById(android.R.id.content), "Đã cập nhật ngân sách.", Snackbar.LENGTH_SHORT).show())
                 .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this, "Lỗi khi cập nhật ngân sách: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Lỗi khi cập nhật ngân sách: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                     Log.e(TAG, "Error updating budget document", e);
                 });
     }
@@ -308,9 +311,9 @@ public class MainActivity extends AppCompatActivity {
     public void deleteBudget(String budgetId) {
         db.collection("users").document(userId).collection("budgets").document(budgetId)
                 .delete()
-                .addOnSuccessListener(aVoid -> Toast.makeText(MainActivity.this, "Đã xóa ngân sách.", Toast.LENGTH_SHORT).show())
+                .addOnSuccessListener(aVoid -> Snackbar.make(findViewById(android.R.id.content), "Đã xóa ngân sách.", Snackbar.LENGTH_SHORT).show())
                 .addOnFailureListener(e -> {
-                    Toast.makeText(MainActivity.this, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(android.R.id.content), "Lỗi khi xóa: " + e.getMessage(), Snackbar.LENGTH_LONG).show();
                     Log.e(TAG, "Error deleting document", e);
                 });
     }
@@ -351,7 +354,7 @@ public class MainActivity extends AppCompatActivity {
     private void signOut() {
         mAuth.signOut();
         mGoogleSignInClient.signOut().addOnCompleteListener(this, task -> {
-            Toast.makeText(MainActivity.this, "Đã đăng xuất.", Toast.LENGTH_SHORT).show();
+            Snackbar.make(findViewById(android.R.id.content), "Đã đăng xuất.", Snackbar.LENGTH_SHORT).show();
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
             finish();
         });
