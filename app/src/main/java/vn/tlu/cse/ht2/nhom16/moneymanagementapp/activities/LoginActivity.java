@@ -4,10 +4,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
@@ -18,108 +20,139 @@ import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
+import com.google.firebase.auth.FirebaseUser; // Import FirebaseUser
 
 import vn.tlu.cse.ht2.nhom16.moneymanagementapp.R;
 
 public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
+    private static final int RC_SIGN_IN = 9001;
+
     private FirebaseAuth mAuth;
     private GoogleSignInClient mGoogleSignInClient;
 
-    // ActivityResultLauncher để xử lý kết quả đăng nhập Google
-    private ActivityResultLauncher<Intent> signInLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == RESULT_OK) {
-                    Intent data = result.getData();
-                    Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-                    try {
-                        // Đăng nhập Google thành công, xác thực với Firebase
-                        GoogleSignInAccount account = task.getResult(ApiException.class);
-                        Log.d(TAG, "firebaseAuthWithGoogle:" + account.getId());
-                        firebaseAuthWithGoogle(account.getIdToken());
-                    } catch (ApiException e) {
-                        // Đăng nhập Google thất bại, cập nhật giao diện người dùng phù hợp
-                        Log.w(TAG, "Google sign in failed", e);
-                        Toast.makeText(LoginActivity.this, "Đăng nhập Google thất bại.", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    Toast.makeText(LoginActivity.this, "Đăng nhập Google bị hủy.", Toast.LENGTH_SHORT).show();
-                }
-            });
+    private EditText etEmail, etPassword; // Thêm EditText cho email và mật khẩu
+    private Button btnEmailSignIn, btnGoogleSignIn; // Nút đăng nhập email và Google
+    private TextView tvRegisterLink; // Nút/Text để chuyển sang đăng ký
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_login); // Liên kết với file bố cục XML
+        setContentView(R.layout.activity_login);
 
         mAuth = FirebaseAuth.getInstance();
 
-        // Cấu hình Google Sign In để yêu cầu ID token
+        // Cấu hình Google Sign In
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.default_web_client_id)) // default_web_client_id được tạo tự động khi bạn kết nối Firebase với ứng dụng Android của mình
+                .requestIdToken(getString(R.string.default_web_client_id))
                 .requestEmail()
                 .build();
-
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
-        // Đặt lắng nghe sự kiện cho nút đăng nhập Google
-        findViewById(R.id.sign_in_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                signIn();
-            }
-        });
-    }
+        // Ánh xạ các View
+        etEmail = findViewById(R.id.et_email);
+        etPassword = findViewById(R.id.et_password);
+        btnEmailSignIn = findViewById(R.id.btn_email_sign_in);
+        btnGoogleSignIn = findViewById(R.id.sign_in_button); // Đổi ID này nếu bạn muốn tên cụ thể hơn
+        tvRegisterLink = findViewById(R.id.tv_register_link);
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        // Kiểm tra xem người dùng đã đăng nhập chưa (non-null) và cập nhật giao diện người dùng tương ứng.
+        // Lắng nghe sự kiện cho nút đăng nhập Google
+        btnGoogleSignIn.setOnClickListener(v -> signInWithGoogle());
+
+        // Lắng nghe sự kiện cho nút đăng nhập Email/Mật khẩu
+        btnEmailSignIn.setOnClickListener(v -> signInWithEmail());
+
+        // Lắng nghe sự kiện cho link đăng ký
+        tvRegisterLink.setOnClickListener(v -> {
+            startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
+        });
+
+        // Kiểm tra xem người dùng đã đăng nhập chưa khi activity được tạo
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
-            updateUI(currentUser);
+            updateUI(currentUser); // Chuyển sang MainActivity nếu đã đăng nhập
         }
     }
 
-    // Khởi tạo quy trình đăng nhập Google
-    private void signIn() {
+    // Phương thức bắt đầu luồng đăng nhập Google
+    private void signInWithGoogle() {
         Intent signInIntent = mGoogleSignInClient.getSignInIntent();
-        signInLauncher.launch(signInIntent);
+        startActivityForResult(signInIntent, RC_SIGN_IN);
     }
 
-    // Xác thực Firebase với ID token của Google
-    private void firebaseAuthWithGoogle(String idToken) {
-        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
-        mAuth.signInWithCredential(credential)
+    // Phương thức xử lý đăng nhập bằng Email/Mật khẩu
+    private void signInWithEmail() {
+        String email = etEmail.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
+
+        if (email.isEmpty() || password.isEmpty()) {
+            Toast.makeText(LoginActivity.this, "Vui lòng nhập email và mật khẩu.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        // Đăng nhập thành công, cập nhật giao diện người dùng với thông tin người dùng đã đăng nhập
-                        Log.d(TAG, "signInWithCredential success");
+                        Log.d(TAG, "signInWithEmail:success");
                         FirebaseUser user = mAuth.getCurrentUser();
-                        Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(LoginActivity.this, "Đăng nhập thành công.", Toast.LENGTH_SHORT).show();
                         updateUI(user);
                     } else {
-                        // Nếu đăng nhập thất bại, hiển thị thông báo cho người dùng.
-                        Log.w(TAG, "signInWithCredential failed", task.getException());
-                        Toast.makeText(LoginActivity.this, "Xác thực thất bại.", Toast.LENGTH_SHORT).show();
+                        Log.w(TAG, "signInWithEmail:failure", task.getException());
+                        Toast.makeText(LoginActivity.this, "Xác thực thất bại: " + task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
                         updateUI(null);
                     }
                 });
     }
 
-    // Chuyển hướng người dùng sau khi đăng nhập thành công hoặc thất bại
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RC_SIGN_IN) {
+            Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                if (account != null && account.getIdToken() != null) {
+                    firebaseAuthWithGoogle(account.getIdToken());
+                } else {
+                    Log.w(TAG, "Google ID Token is null.");
+                    Toast.makeText(LoginActivity.this, "Đăng nhập Google thất bại.", Toast.LENGTH_SHORT).show();
+                }
+            } catch (ApiException e) {
+                Log.w(TAG, "Google sign in failed", e);
+                Toast.makeText(LoginActivity.this, "Đăng nhập Google thất bại.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    // Xác thực với Firebase bằng Google ID Token
+    private void firebaseAuthWithGoogle(String idToken) {
+        AuthCredential credential = GoogleAuthProvider.getCredential(idToken, null);
+        mAuth.signInWithCredential(credential)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        Log.d(TAG, "Firebase Google sign in successful");
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        Toast.makeText(LoginActivity.this, "Đăng nhập thành công.", Toast.LENGTH_SHORT).show();
+                        updateUI(user);
+                    } else {
+                        Log.w(TAG, "Firebase Google sign in failed", task.getException());
+                        Toast.makeText(LoginActivity.this, "Xác thực Firebase thất bại.", Toast.LENGTH_SHORT).show();
+                        updateUI(null);
+                    }
+                });
+    }
+
+    // Cập nhật UI và chuyển Activity
     private void updateUI(FirebaseUser user) {
         if (user != null) {
-            // Người dùng đã đăng nhập, chuyển sang màn hình chính (MainActivity)
             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
             startActivity(intent);
-            finish(); // Đóng LoginActivity để người dùng không thể quay lại bằng nút back
-        } else {
-            // Người dùng chưa đăng nhập hoặc đăng xuất, có thể hiển thị lại nút đăng nhập hoặc các UI khác
+            finish();
         }
     }
 }
